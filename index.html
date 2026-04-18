@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driving Theory Test</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 700px;
+            width: 100%;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .critical-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--danger);
+            color: white;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            border-bottom-left-radius: 8px;
+            display: none;
+        }
+
+        .category-tag {
+            display: inline-block;
+            background: #e5e7eb;
+            color: var(--text-muted);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .header {
+            margin-bottom: 24px;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: 800;
+            margin: 0;
+            color: var(--text-main);
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            margin: 16px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .question-text {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .options {
+            display: grid;
+            gap: 12px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 16px;
+            font-size: 15px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: #f8fafc;
+        }
+
+        .option-btn.selected {
+            border-color: var(--primary);
+            background: #eff6ff;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .option-btn.correct {
+            border-color: var(--success);
+            background: #ecfdf5;
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .option-btn.incorrect {
+            border-color: var(--danger);
+            background: #fef2f2;
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        .tip-container {
+            margin-top: 20px;
+            padding: 16px;
+            background: #fef3c7;
+            border-left: 4px solid var(--warning);
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .controls {
+            margin-top: 32px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-hover);
+        }
+
+        .btn-primary:disabled {
+            background: #93c5fd;
+            cursor: not-allowed;
+        }
+
+        .results {
+            text-align: center;
+            display: none;
+        }
+
+        .score-display {
+            font-size: 48px;
+            font-weight: 900;
+            color: var(--primary);
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card" id="quiz-app">
+            <div id="critical-label" class="critical-badge">CÂU ĐIỂM LIỆT 🚨</div>
+            
+            <div id="loading-screen" style="text-align: center; padding: 40px;">
+                <p>Đang tải câu hỏi...</p>
+            </div>
+
+            <div id="quiz-screen" style="display: none;">
+                <div class="header">
+                    <span id="category-label" class="category-tag">Khái niệm</span>
+                    <h1 class="title">Ôn thi GPLX B2</h1>
+                    <div class="progress-bar-container">
+                        <div id="progress-fill" class="progress-bar-fill"></div>
+                    </div>
+                    <p style="font-size: 14px; color: var(--text-muted);">
+                        Câu <span id="current-idx">1</span> / <span id="total-count">600</span>
+                    </p>
+                </div>
+
+                <div id="question-text" class="question-text"></div>
+
+                <div id="options-list" class="options"></div>
+
+                <div id="tip-box" class="tip-container">
+                    <strong>Giải thích:</strong> <span id="tip-text"></span>
+                </div>
+
+                <div class="controls">
+                    <button id="check-btn" class="btn btn-primary" disabled>Kiểm tra đáp án</button>
+                    <button id="next-btn" class="btn btn-primary" style="display: none;">Câu tiếp theo</button>
+                </div>
+            </div>
+
+            <div id="results-screen" class="results">
+                <h2 class="title">Kết quả bài thi</h2>
+                <div class="score-display"><span id="final-score">0</span> / <span id="final-total">0</span></div>
+                <p id="result-message" style="margin-bottom: 30px;"></p>
+                <button class="btn btn-primary" onclick="location.reload()">Làm lại từ đầu</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let questions = [];
+        let currentIndex = 0;
+        let selectedIdx = null;
+        let score = 0;
+        let hasFailedCritical = false;
+
+        const elements = {
+            loading: document.getElementById('loading-screen'),
+            quiz: document.getElementById('quiz-screen'),
+            results: document.getElementById('results-screen'),
+            question: document.getElementById('question-text'),
+            options: document.getElementById('options-list'),
+            category: document.getElementById('category-label'),
+            critical: document.getElementById('critical-label'),
+            progress: document.getElementById('progress-fill'),
+            currentIdx: document.getElementById('current-idx'),
+            totalCount: document.getElementById('total-count'),
+            checkBtn: document.getElementById('check-btn'),
+            nextBtn: document.getElementById('next-btn'),
+            tipBox: document.getElementById('tip-box'),
+            tipText: document.getElementById('tip-text'),
+            finalScore: document.getElementById('final-score'),
+            finalTotal: document.getElementById('final-total'),
+            resultMsg: document.getElementById('result-message')
+        };
+
+        async function init() {
+            try {
+                const res = await fetch('questions.json');
+                const rawQuestions = await res.json();
+                
+                // Process questions to match the expected format if needed
+                // The raw JSON has {q, opts: [{n, t}], ans, crit, cn}
+                questions = rawQuestions;
+
+                elements.totalCount.innerText = questions.length;
+                elements.loading.style.display = 'none';
+                elements.quiz.style.display = 'block';
+                render();
+            } catch (err) {
+                console.error(err);
+                elements.loading.innerHTML = "<p style='color:red'>Lỗi tải dữ liệu. Vui lòng thử lại.</p>";
+            }
+        }
+
+        function render() {
+            const q = questions[currentIndex];
+            elements.currentIdx.innerText = currentIndex + 1;
+            elements.question.innerText = q.q;
+            elements.category.innerText = q.cn || q.category;
+            elements.critical.style.display = q.crit ? 'block' : 'none';
+            elements.progress.style.width = `${((currentIndex) / questions.length) * 100}%`;
+            
+            elements.options.innerHTML = '';
+            q.opts.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerHTML = `<strong>${idx + 1}.</strong> &nbsp; ${opt.t}`;
+                btn.onclick = () => {
+                    if (elements.checkBtn.style.display === 'none') return; // Already checked
+                    selectedIdx = idx;
+                    document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    elements.checkBtn.disabled = false;
+                };
+                elements.options.appendChild(btn);
+            });
+
+            elements.tipBox.style.display = 'none';
+            elements.checkBtn.style.display = 'block';
+            elements.checkBtn.disabled = true;
+            elements.nextBtn.style.display = 'none';
+        }
+
+        function check() {
+            const q = questions[currentIndex];
+            elements.checkBtn.disabled = true;
+            
+            // In JSON, 'ans' is 1-indexed
+            const correctIdx = q.ans - 1;
+            const isCorrect = selectedIdx === correctIdx;
+
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach(b => b.disabled = true);
+
+            if (isCorrect) {
+                buttons[selectedIdx].classList.add('correct');
+                score++;
+            } else {
+                buttons[selectedIdx].classList.add('incorrect');
+                buttons[correctIdx].classList.add('correct');
+                if (q.crit) hasFailedCritical = true;
+            }
+
+            if (q.tip) {
+                elements.tipText.innerText = q.tip;
+                elements.tipBox.style.display = 'block';
+            }
+
+            elements.checkBtn.style.display = 'none';
+            elements.nextBtn.style.display = 'block';
+        }
+
+        function next() {
+            currentIndex++;
+            if (currentIndex < questions.length) {
+                render();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            elements.quiz.style.display = 'none';
+            elements.results.style.display = 'block';
+            elements.finalScore.innerText = score;
+            elements.finalTotal.innerText = questions.length;
+            
+            let msg = "";
+            const passed = (score >= (questions.length * 0.9)) && !hasFailedCritical;
+            
+            if (hasFailedCritical) {
+                msg = "Bạn đã trượt do sai câu điểm liệt! ❌";
+            } else if (passed) {
+                msg = "Chúc mừng! Bạn đã đạt bài thi. 🎉";
+            } else {
+                msg = "Bạn không đạt. Hãy luyện tập thêm! 📚";
+            }
+            elements.resultMsg.innerText = msg;
+        }
+
+        elements.checkBtn.onclick = check;
+        elements.nextBtn.onclick = next;
+        init();
+    </script>
+</body>
+</html>
