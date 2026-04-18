@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+venv/
+.env
+.DS_Store
+.vscode/
+.idea/
+*.log
+# Scratch scripts
+check_text.py
+convert_json.py
+debug_end.py
+extract.py
+sample_pdf_text.txt
