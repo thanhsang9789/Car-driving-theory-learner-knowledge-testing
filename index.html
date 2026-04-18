@@ -227,6 +227,7 @@
         <div class="tabs">
             <button id="tab-testing" class="tab-btn active" onclick="switchTab('testing')">Luyện tập</button>
             <button id="tab-learning" class="tab-btn" onclick="switchTab('learning')">Ghi chú học tập</button>
+            <button id="tab-tips" class="tab-btn" onclick="switchTab('tips')">Mẹo thi lý thuyết</button>
         </div>
 
         <div id="testing-content" class="card">
@@ -280,6 +281,125 @@
             <p style="color: var(--text-muted); margin-bottom: 24px;">Tóm tắt các câu hỏi và đáp án để ghi nhớ nhanh.</p>
             <div id="learning-list">
                 <!-- Learning items injected here -->
+            </div>
+        </div>
+
+        <div id="tips-content" class="card hidden">
+            <h1 class="title">Kinh nghiệm lý thuyết</h1>
+            <p style="color: var(--text-muted); margin-bottom: 24px;">Các mẹo và từ khóa giúp anh chọn đáp án đúng nhanh nhất.</p>
+            
+            <div class="tip-section" style="display: flex; flex-direction: column; gap: 24px;">
+                <div class="tip-card" style="border: 1px solid var(--border); padding: 20px; border-radius: 16px;">
+                    <h3 style="margin-top: 0; color: var(--primary);">1. Các câu hỏi chọn đáp án "Tất cả"</h3>
+                    <ul style="padding-left: 20px; line-height: 1.6;">
+                        <li>Những hành vi cấm</li>
+                        <li>Kinh doanh vận tải</li>
+                        <li>Đạo đức</li>
+                    </ul>
+                </div>
+
+                <div class="tip-card" style="border: 1px solid var(--border); padding: 20px; border-radius: 16px;">
+                    <h3 style="margin-top: 0; color: var(--primary);">2. Chọn 2 đáp án khi có từ:</h3>
+                    <p style="font-style: italic; color: var(--text-muted);">Hành vi, Trách nhiệm, Nhiệm vụ, Nghĩa vụ, Khách, Đạo đức, Văn hóa giao thông, Tư tưởng Hồ Chí Minh, Tham gia giao thông.</p>
+                    <p><strong>* Mẹo:</strong> Thường câu hỏi chỉ có 2 đáp án và sẽ chọn cả 2.</p>
+                </div>
+
+                <div class="tip-card" style="border: 1px solid var(--border); padding: 20px; border-radius: 16px;">
+                    <h3 style="margin-top: 0; color: var(--primary);">3. Chọn đáp án DÀI NHẤT nếu bắt đầu bằng:</h3>
+                    <p style="line-height: 1.6;">Phải, Quan sát, Kiểm tra, Hoạt động, Bảo dưỡng, Ở, Tại, Trên, Xe chữa cháy.</p>
+                </div>
+
+                <div class="tip-card" style="border: 1px solid var(--border); padding: 20px; border-radius: 16px;">
+                    <h3 style="margin-top: 0; color: var(--primary);">4. Từ khóa "Vàng" - Thấy là CHỌN:</h3>
+                    <ul style="padding-left: 20px; line-height: 1.6;">
+                        <li>Nghiêm cấm hoặc bị nghiêm cấm</li>
+                        <li>Không được</li>
+                        <li>Chấp hành, Bắt buộc</li>
+                        <li>Phải có phép của cơ quan có thẩm quyền</li>
+                        <li>Dùng thanh nối cứng</li>
+                        <li>Báo hiệu tạm thời, Hiệu lệnh người điều khiển</li>
+                        <li>Phương tiện giao thông đường sắt</li>
+                        <li>Xe chữa cháy đi làm nhiệm vụ</li>
+                    </ul>
+                </div>
+
+                <div class="tip-card" style="border: 1px solid var(--border); padding: 20px; border-radius: 16px;">
+                    <h3 style="margin-top: 0; color: var(--primary);">5. Câu hỏi về tốc độ</h3>
+                    <ul style="padding-left: 20px; line-height: 1.6;">
+                        <li><strong>Cao tốc:</strong> Tốc độ cao nhất trừ 30 = Đáp án đúng.</li>
+                        <li><strong>Ngoài dân cư:</strong> 80km/h (xe < 3.5t), 70km/h (> 3.5t), 60km/h (mô tô), 50km/h (xe máy).</li>
+                        <li><strong>Trong dân cư:</strong> 50km/h (ô tô), 40km/h (mô tô/gắn máy), 30km/h (xe công nông).</li>
+                        <li><strong>Mẹo 8x7=56:</strong> Thứ tự đáp án tương ứng 80 (ĐA 1), 70 (ĐA 2), 50 (ĐA 3), 60 (ĐA 4).</li>
+                    </ul>
+                </div>
+
+                <div class="tip-card" style="border: 1px solid var(--border); padding: 20px; border-radius: 16px;">
+                    <h3 style="margin-top: 0; color: var(--primary);">6. Độ tuổi tham gia giao thông</h3>
+                    <ul style="padding-left: 20px; line-height: 1.6;">
+                        <li><strong>16 tuổi:</strong> Xe dưới 50cc.</li>
+                        <li><strong>18 tuổi:</strong> A1, A2, B2.</li>
+                        <li><strong>B1:</strong> Nam > 60, Nữ > 55.</li>
+                        <li><strong>Hạng C:</strong> 21 tuổi | <strong>Hạng D:</strong> 24 tuổi | <strong>Hạng E:</strong> 27 tuổi.</li>
+                        <li><strong>Mẹo:</strong> Các hạng B2 đến E cách nhau đúng 3 tuổi.</li>
+                    </ul>
+                </div>
+
+                <div class="tip-card" style="border: 1px solid var(--border); padding: 20px; border-radius: 16px;">
+                    <h3 style="margin-top: 0; color: var(--primary);">7. Thứ tự xe ưu tiên</h3>
+                    <p style="line-height: 1.6; font-weight: 600;">Chữa cháy => Quân sự/Công an => Cứu thương => Hộ đê/Thiên tai => Đoàn xe tang.</p>
+                </div>
+
+                <div class="tip-card" style="border: 1px solid var(--border); padding: 20px; border-radius: 16px;">
+                    <h3 style="margin-top: 0; color: var(--primary);">8. Niên hạn sử dụng</h3>
+                    <ul style="padding-left: 20px; line-height: 1.6;">
+                        <li>Ô tô tải: <strong>25 năm</strong></li>
+                        <li>Ô tô trên 9 chỗ: <strong>20 năm</strong></li>
+                    </ul>
+                </div>
+
+                <div class="tip-card" style="border: 1px solid var(--border); padding: 20px; border-radius: 16px;">
+                    <h3 style="margin-top: 0; color: var(--primary);">9. Dừng và Đỗ xe</h3>
+                    <ul style="padding-left: 20px; line-height: 1.6;">
+                        <li><strong>Đỗ xe:</strong> Không giới hạn thời gian.</li>
+                        <li><strong>Dừng xe:</strong> Có giới hạn thời gian.</li>
+                    </ul>
+                </div>
+
+                <div class="tip-card" style="border: 1px solid var(--border); padding: 20px; border-radius: 16px;">
+                    <h3 style="margin-top: 0; color: var(--primary);">10. Cách nhận biết biển báo</h3>
+                    <ul style="padding-left: 20px; line-height: 1.6;">
+                        <li><strong>Cấm:</strong> Tròn, viền đỏ.</li>
+                        <li><strong>Nguy hiểm:</strong> Tam giác vàng, viền đỏ.</li>
+                        <li><strong>Hiệu lệnh:</strong> Tròn xanh, hình trắng.</li>
+                        <li><strong>Chỉ dẫn:</strong> Vuông/Chữ nhật xanh.</li>
+                        <li><strong>Thứ tự cấm:</strong> Xe nhỏ -> Xe lớn (Cấm nhỏ là cấm luôn lớn).</li>
+                        <li><strong>Rẽ/Quay:</strong> Cấm rẽ trái = Cấm quay đầu. Cấm quay đầu = Được rẽ trái.</li>
+                    </ul>
+                </div>
+
+                <div class="tip-card" style="border: 1px solid var(--border); padding: 20px; border-radius: 16px;">
+                    <h3 style="margin-top: 0; color: var(--primary);">11. Nhường đường vòng xuyến</h3>
+                    <p>Có vòng xuyến: Nhường cho xe đi bên <strong>TRÁI</strong>. Không vòng xuyến: Nhường bên <strong>PHẢI</strong>.</p>
+                </div>
+
+                <div class="tip-card" style="border: 1px solid var(--border); padding: 20px; border-radius: 16px;">
+                    <h3 style="margin-top: 0; color: var(--primary);">12. Nồng độ cồn</h3>
+                    <ul style="padding-left: 20px; line-height: 1.6;">
+                        <li><strong>Ô tô/Máy kéo:</strong> Tuyệt đối không (0.0).</li>
+                        <li><strong>Mô tô/Gắn máy:</strong> < 50mg/100ml máu hoặc < 0.25mg/1l khí thở.</li>
+                    </ul>
+                </div>
+
+                <div class="tip-card" style="border: 1px solid var(--border); padding: 20px; border-radius: 16px;">
+                    <h3 style="margin-top: 0; color: var(--primary);">13. Mẹo giải Sa hình</h3>
+                    <ol style="padding-left: 20px; line-height: 1.6;">
+                        <li>Xe đã vào ngã tư đi trước.</li>
+                        <li>Xe ưu tiên (Hỏa - Quân - Công - Thương).</li>
+                        <li>Đường ưu tiên (Biển báo).</li>
+                        <li>Bên phải không vướng.</li>
+                        <li>Hướng rẽ (Phải -> Thẳng -> Trái).</li>
+                    </ol>
+                </div>
             </div>
         </div>
 
@@ -339,12 +459,18 @@
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`tab-${tab}`).classList.add('active');
             
+            // Hide all
+            dom.testing.classList.add('hidden');
+            dom.learning.classList.add('hidden');
+            document.getElementById('tips-content').classList.add('hidden');
+            
+            // Show selected
             if (tab === 'testing') {
                 dom.testing.classList.remove('hidden');
-                dom.learning.classList.add('hidden');
-            } else {
-                dom.testing.classList.add('hidden');
+            } else if (tab === 'learning') {
                 dom.learning.classList.remove('hidden');
+            } else if (tab === 'tips') {
+                document.getElementById('tips-content').classList.remove('hidden');
             }
         }
 
