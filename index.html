@@ -652,7 +652,7 @@
                 }
 
                 // Main data loading
-                const res = await fetch('questions.json');
+                const res = await fetch('questions.json?v=' + new Date().getTime());
                 if (!res.ok) throw new Error("Questions file not found");
                 
                 allQuestions = await res.json();
