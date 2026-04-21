@@ -16,6 +16,16 @@
             --text-main: #1e293b;
             --text-muted: #64748b;
             --border: #e2e8f0;
+            --tabs-bg: #f1f5f9;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --tabs-bg: #334155;
         }
 
         body {
@@ -40,7 +50,7 @@
             display: flex;
             gap: 8px;
             margin-bottom: 20px;
-            background: #f1f5f9;
+            background: var(--tabs-bg);
             padding: 4px;
             border-radius: 12px;
         }
@@ -276,6 +286,7 @@
 </head>
 <body>
     <div class="auth-bar" id="auth-bar">
+        <button id="theme-toggle" onclick="toggleTheme()" style="background:none; border:none; cursor:pointer; font-size:18px; padding:0; margin-right:auto;">🌙</button>
         <span id="user-display" class="hidden">Chào, <span class="user-email" id="user-email"></span> | <span class="auth-link" onclick="handleLogout()">Đăng xuất</span></span>
         <span id="guest-display"><span class="auth-link" onclick="openAuthModal()">Đăng nhập / Đăng ký</span></span>
     </div>
@@ -563,6 +574,12 @@
         };
         let currentUser = null;
         let isRegisterMode = false;
+
+        // Theme initialization
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.getElementById('theme-toggle').innerText = '☀️';
+        }
 
         async function init() {
             try {
@@ -926,6 +943,20 @@
             currentUser = null;
             updateAuthUI();
             location.reload(); // Refresh to clear data
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.getElementById('theme-toggle');
+            if (html.getAttribute('data-theme') === 'dark') {
+                html.removeAttribute('data-theme');
+                btn.innerText = '🌙';
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                btn.innerText = '☀️';
+                localStorage.setItem('theme', 'dark');
+            }
         }
 
         function renderHistory() {
