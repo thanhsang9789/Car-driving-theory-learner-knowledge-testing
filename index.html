@@ -733,6 +733,15 @@
                 dom.categoryList.appendChild(card);
             });
             
+            // Add "Critical questions"
+            const critCount = allQuestions.filter(q => q.crit).length;
+            const critCard = document.createElement('div');
+            critCard.className = 'category-card';
+            critCard.style.borderColor = 'var(--danger)';
+            critCard.innerHTML = `<h3>Câu hỏi điểm liệt 🚨</h3><p>${critCount} câu</p>`;
+            critCard.onclick = () => startQuiz('CRITICAL_FILTER');
+            dom.categoryList.appendChild(critCard);
+
             // Add "All questions"
             const allCard = document.createElement('div');
             allCard.className = 'category-card';
@@ -756,7 +765,9 @@
         }
 
         function startQuiz(categoryName, startAt = 0) {
-            if (categoryName) {
+            if (categoryName === 'CRITICAL_FILTER') {
+                filteredQuestions = allQuestions.filter(q => q.crit);
+            } else if (categoryName) {
                 filteredQuestions = allQuestions.filter(q => (q.cn || q.category) === categoryName);
             } else {
                 filteredQuestions = [...allQuestions];
