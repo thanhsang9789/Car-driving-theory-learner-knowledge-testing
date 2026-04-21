@@ -305,18 +305,19 @@
             min-height: 60px;
         }
         .theme-toggle-btn {
-            background: var(--tabs-bg);
+            background: var(--card-bg);
             border: 1px solid var(--border);
             cursor: pointer;
-            font-size: 18px;
-            padding: 8px 14px;
+            font-size: 16px;
+            width: 42px;
+            height: 42px;
             border-radius: 12px;
-            margin-right: auto;
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            flex-shrink: 0;
         }
         .theme-toggle-btn:hover {
             transform: translateY(-2px);
@@ -329,18 +330,20 @@
 </head>
 <body>
     <div class="auth-bar">
-        <button id="theme-toggle" onclick="toggleTheme()" class="theme-toggle-btn">🌙</button>
-        <div id="auth-status">
+        <div id="auth-status" style="margin-left: auto;">
             <span id="user-display" class="hidden">Chào, <span class="user-email" id="user-email"></span> | <span class="auth-link" onclick="handleLogout()">Đăng xuất</span></span>
             <span id="guest-display"><span class="auth-link" onclick="openAuthModal()">Đăng nhập / Đăng ký</span></span>
         </div>
     </div>
     <div class="container">
-        <div class="tabs">
-            <button id="tab-testing" class="tab-btn active" onclick="switchTab('testing')">Luyện tập</button>
-            <button id="tab-learning" class="tab-btn" onclick="switchTab('learning')">Ghi chú học tập</button>
-            <button id="tab-history" class="tab-btn" onclick="switchTab('history')">Lịch sử</button>
-            <button id="tab-tips" class="tab-btn" onclick="switchTab('tips')">Mẹo thi lý thuyết</button>
+        <div class="tabs-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+            <div class="tabs" style="flex: 1; margin-bottom: 0;">
+                <button id="tab-testing" class="tab-btn active" onclick="switchTab('testing')">Luyện tập</button>
+                <button id="tab-learning" class="tab-btn" onclick="switchTab('learning')">Ghi chú học tập</button>
+                <button id="tab-history" class="tab-btn" onclick="switchTab('history')">Lịch sử</button>
+                <button id="tab-tips" class="tab-btn" onclick="switchTab('tips')">Mẹo thi lý thuyết</button>
+            </div>
+            <button id="theme-toggle" onclick="toggleTheme()" class="theme-toggle-btn">🌙</button>
         </div>
 
         <div id="testing-content" class="card">
