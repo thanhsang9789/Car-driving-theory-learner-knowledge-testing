@@ -325,6 +325,9 @@
                     <button class="auth-link" onclick="openJumpModal()" style="font-size: 12px; margin-top: -10px; display: block;">Nhảy đến câu khác...</button>
                 </div>
 
+                <div id="question-image-container" class="hidden" style="margin: 20px 0; text-align: center;">
+                    <img id="question-image" src="" alt="Câu hỏi" style="max-width: 100%; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+                </div>
                 <div id="question-text" class="question-text"></div>
                 <div id="options-list" class="options"></div>
 
@@ -565,7 +568,9 @@
             wrongCount: document.getElementById('wrong-count'),
             critical: document.getElementById('critical-badge'),
             finalScore: document.getElementById('final-score'),
-            resultMsg: document.getElementById('result-msg')
+            resultMsg: document.getElementById('result-msg'),
+            qImg: document.getElementById('question-image'),
+            qImgContainer: document.getElementById('question-image-container')
         };
 
         const STORAGE_KEY = 'driving_theory_history_v1';
@@ -701,7 +706,8 @@
                 const item = document.createElement('div');
                 item.className = 'learning-note-item';
                 const correctOpt = q.opts[q.ans - 1].t;
-                item.innerHTML = `<div class="learning-note-q">${q.q}</div><div class="learning-note-a">✅ Đáp án: ${correctOpt}</div>`;
+                let imgHtml = q.img ? `<img src="${q.img}" style="max-width: 100%; border-radius: 8px; margin-bottom: 12px; display: block;">` : '';
+                item.innerHTML = `${imgHtml}<div class="learning-note-q">${q.q}</div><div class="learning-note-a">✅ Đáp án: ${correctOpt}</div>`;
                 dom.learningList.appendChild(item);
             });
         }
@@ -739,6 +745,15 @@
             dom.progress.style.width = `${(currentIndex / filteredQuestions.length) * 100}%`;
             dom.correctCount.innerText = correctCount;
             dom.wrongCount.innerText = wrongCount;
+
+            // Handle Image
+            if (q.img) {
+                dom.qImg.src = q.img;
+                dom.qImgContainer.classList.remove('hidden');
+            } else {
+                dom.qImgContainer.classList.add('hidden');
+                dom.qImg.src = '';
+            }
             
             dom.options.innerHTML = '';
             q.opts.forEach((opt, idx) => {
@@ -985,7 +1000,12 @@
                 historyData.wrongByDate[date].forEach(item => {
                     const qItem = document.createElement('div');
                     qItem.className = 'learning-note-item';
-                    qItem.innerHTML = `<div class="learning-note-q">#${item.id}: ${item.q}</div><div class="learning-note-a">✅ Đáp án đúng: ${item.a}</div>`;
+                    
+                    // Find original question to see if it had an image
+                    const originalQ = allQuestions.find(qx => qx.id === item.id);
+                    let imgHtml = (originalQ && originalQ.img) ? `<img src="${originalQ.img}" style="max-width: 200px; border-radius: 8px; margin-bottom: 8px; display: block;">` : '';
+                    
+                    qItem.innerHTML = `${imgHtml}<div class="learning-note-q">#${item.id}: ${item.q}</div><div class="learning-note-a">✅ Đáp án đúng: ${item.a}</div>`;
                     dom.wrongAnswersList.appendChild(qItem);
                 });
             });
