@@ -565,23 +565,36 @@
 
         async function init() {
             try {
-                // Check auth status
-                const authRes = await fetch('/api/user_info');
-                const authData = await authRes.json();
-                if (authData.logged_in) {
-                    currentUser = authData.email;
-                    updateAuthUI();
-                    await syncHistoryFromServer();
+                // Check auth status - Wrap in separate try/catch for Netlify/Static compatibility
+                try {
+                    const authRes = await fetch('/api/user_info');
+                    if (authRes.ok) {
+                        const authData = await authRes.json();
+                        if (authData.logged_in) {
+                            currentUser = authData.email;
+                            updateAuthUI();
+                            await syncHistoryFromServer();
+                        }
+                    } else {
+                        // Not a Flask environment, hide auth bar if you want or just ignore
+                        document.getElementById('auth-bar').classList.add('hidden');
+                    }
+                } catch (e) {
+                    console.log("Running in static mode (no backend)");
+                    document.getElementById('auth-bar').classList.add('hidden');
                 }
 
+                // Main data loading
                 const res = await fetch('questions.json');
+                if (!res.ok) throw new Error("Questions file not found");
+                
                 allQuestions = await res.json();
                 renderCategories();
                 renderLearningNotes();
                 dom.loading.classList.add('hidden');
             } catch (err) {
                 console.error(err);
-                dom.loading.innerHTML = "<p style='color:red'>Lỗi tải dữ liệu.</p>";
+                dom.loading.innerHTML = "<p style='color:red'>Lỗi tải dữ liệu. Vui lòng kiểm tra file questions.json.</p>";
             }
         }
 
