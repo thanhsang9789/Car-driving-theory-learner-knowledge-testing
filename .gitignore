@@ -12,3 +12,4 @@ convert_json.py
 debug_end.py
 extract.py
 sample_pdf_text.txt
+database.db

@@ -258,9 +258,27 @@
         .modal input:focus { border-color: var(--primary); }
         .modal-btns { display: flex; gap: 12px; }
         .modal-btns button { flex: 1; }
+
+        /* Auth Top Bar */
+        .auth-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 10px 20px;
+            gap: 12px;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        .user-email { font-weight: 700; color: var(--primary); }
+        .auth-link { color: var(--primary); text-decoration: none; font-weight: 600; cursor: pointer; }
+        .auth-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
+    <div class="auth-bar" id="auth-bar">
+        <span id="user-display" class="hidden">Chào, <span class="user-email" id="user-email"></span> | <span class="auth-link" onclick="handleLogout()">Đăng xuất</span></span>
+        <span id="guest-display"><span class="auth-link" onclick="openAuthModal()">Đăng nhập / Đăng ký</span></span>
+    </div>
     <div class="container">
         <div class="tabs">
             <button id="tab-testing" class="tab-btn active" onclick="switchTab('testing')">Luyện tập</button>
@@ -482,6 +500,21 @@
                 </div>
             </div>
         </div>
+
+        <!-- Auth Modal -->
+        <div id="auth-modal" class="modal-overlay hidden">
+            <div class="modal">
+                <h2 id="auth-title">Đăng nhập</h2>
+                <div id="auth-error" style="color: var(--danger); font-size: 13px; margin-bottom: 12px;" class="hidden"></div>
+                <input type="email" id="auth-email" placeholder="Email" style="text-align: left;">
+                <input type="password" id="auth-password" placeholder="Mật khẩu" style="text-align: left;">
+                <div class="modal-btns">
+                    <button class="tab-btn" onclick="toggleAuthMode()" id="auth-toggle-btn" style="background: #e2e8f0; font-size: 12px;">Chưa có tài khoản?</button>
+                    <button class="tab-btn active" onclick="handleAuthSubmit()" id="auth-submit-btn">Đăng nhập</button>
+                </div>
+                <button class="auth-link" onclick="closeAuthModal()" style="margin-top: 16px; font-size: 13px; background: none; border: none;">Đóng</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -527,9 +560,20 @@
             totalWrong: 0,
             wrongByDate: {} // { '2026-04-21': [ { id, q, a } ] }
         };
+        let currentUser = null;
+        let isRegisterMode = false;
 
         async function init() {
             try {
+                // Check auth status
+                const authRes = await fetch('/api/user_info');
+                const authData = await authRes.json();
+                if (authData.logged_in) {
+                    currentUser = authData.email;
+                    updateAuthUI();
+                    await syncHistoryFromServer();
+                }
+
                 const res = await fetch('questions.json');
                 allQuestions = await res.json();
                 renderCategories();
@@ -733,6 +777,8 @@
 
         function saveToHistory(id, isCorrect, questionText = "", correctAnswer = "") {
             const today = new Date().toLocaleDateString('vi-VN');
+            
+            // Local update
             if (isCorrect) {
                 historyData.totalCorrect++;
             } else {
@@ -740,13 +786,132 @@
                 if (!historyData.wrongByDate[today]) {
                     historyData.wrongByDate[today] = [];
                 }
-                // Don't duplicate wrong questions for the same day if already there
                 const exists = historyData.wrongByDate[today].find(x => x.id === id);
                 if (!exists) {
                     historyData.wrongByDate[today].push({ id, q: questionText, a: correctAnswer });
                 }
             }
             localStorage.setItem(STORAGE_KEY, JSON.stringify(historyData));
+
+            // Server sync if logged in
+            if (currentUser) {
+                fetch('/api/history', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        id, 
+                        q: questionText, 
+                        a: correctAnswer, 
+                        is_correct: isCorrect,
+                        date: today
+                    })
+                });
+            }
+        }
+
+        async function syncHistoryFromServer() {
+            try {
+                const res = await fetch('/api/history');
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    // Merging logic or just replace
+                    // For simplicity, let's keep local but prioritize server data for the History tab
+                    // In a real app, you'd merge them properly.
+                    // We'll update historyData based on server data for the UI
+                    let correct = 0;
+                    let wrong = 0;
+                    let wrongByDate = {};
+                    
+                    data.forEach(h => {
+                        if (h.is_correct) {
+                            correct++;
+                        } else {
+                            wrong++;
+                            if (!wrongByDate[h.date]) wrongByDate[h.date] = [];
+                            wrongByDate[h.date].push({ id: h.question_id, q: h.question_text, a: h.correct_answer });
+                        }
+                    });
+                    
+                    historyData.totalCorrect = correct;
+                    historyData.totalWrong = wrong;
+                    historyData.wrongByDate = wrongByDate;
+                }
+            } catch (err) { console.error("Sync failed", err); }
+        }
+
+        function updateAuthUI() {
+            if (currentUser) {
+                document.getElementById('user-display').classList.remove('hidden');
+                document.getElementById('guest-display').classList.add('hidden');
+                document.getElementById('user-email').innerText = currentUser;
+            } else {
+                document.getElementById('user-display').classList.add('hidden');
+                document.getElementById('guest-display').classList.remove('hidden');
+            }
+        }
+
+        function openAuthModal() {
+            document.getElementById('auth-modal').classList.remove('hidden');
+            document.getElementById('auth-error').classList.add('hidden');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+        }
+
+        function toggleAuthMode() {
+            isRegisterMode = !isRegisterMode;
+            document.getElementById('auth-title').innerText = isRegisterMode ? "Đăng ký" : "Đăng nhập";
+            document.getElementById('auth-submit-btn').innerText = isRegisterMode ? "Đăng ký" : "Đăng nhập";
+            document.getElementById('auth-toggle-btn').innerText = isRegisterMode ? "Đã có tài khoản?" : "Chưa có tài khoản?";
+        }
+
+        async function handleAuthSubmit() {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const errorEl = document.getElementById('auth-error');
+            
+            if (!email || !password) {
+                errorEl.innerText = "Vui lòng nhập đầy đủ!";
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            const endpoint = isRegisterMode ? '/api/register' : '/api/login';
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    if (isRegisterMode) {
+                        alert("Đăng ký thành công! Hãy đăng nhập.");
+                        toggleAuthMode();
+                    } else {
+                        currentUser = data.email;
+                        updateAuthUI();
+                        closeAuthModal();
+                        await syncHistoryFromServer();
+                        if (currentTab === 'history') renderHistory();
+                    }
+                } else {
+                    errorEl.innerText = data.error || "Lỗi không xác định";
+                    errorEl.classList.remove('hidden');
+                }
+            } catch (err) {
+                errorEl.innerText = "Lỗi kết nối server";
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        async function handleLogout() {
+            await fetch('/api/logout');
+            currentUser = null;
+            updateAuthUI();
+            location.reload(); // Refresh to clear data
         }
 
         function renderHistory() {
