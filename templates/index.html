@@ -309,6 +309,7 @@
                     <div class="progress-container">
                         <div id="progress-fill" class="progress-fill"></div>
                     </div>
+                    <button class="auth-link" onclick="openJumpModal()" style="font-size: 12px; margin-top: -10px; display: block;">Nhảy đến câu khác...</button>
                 </div>
 
                 <div id="question-text" class="question-text"></div>
@@ -492,8 +493,8 @@
         <div id="jump-modal" class="modal-overlay hidden">
             <div class="modal">
                 <h2>Nhảy đến câu hỏi</h2>
-                <p style="color: var(--text-muted); font-size: 14px;">Nhập số thứ tự câu hỏi (1-600) để bắt đầu luyện tập ngay.</p>
-                <input type="number" id="jump-input" placeholder="Ví dụ: 123" min="1" max="600">
+                <p style="color: var(--text-muted); font-size: 14px;">Nhập số thứ tự câu hỏi để bắt đầu luyện tập ngay.</p>
+                <input type="number" id="jump-input" placeholder="Ví dụ: 123" min="1">
                 <div class="modal-btns">
                     <button class="tab-btn" onclick="closeJumpModal()" style="background: #e2e8f0;">Hủy</button>
                     <button class="tab-btn active" onclick="confirmJump()">Bắt đầu</button>
