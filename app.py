@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_from_directory
 import json
 import os
 
@@ -15,6 +15,10 @@ def load_questions():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/questions.json')
+def serve_questions_json():
+    return send_from_directory(os.path.dirname(__file__), 'questions.json')
 
 @app.route('/api/questions')
 def get_questions():
