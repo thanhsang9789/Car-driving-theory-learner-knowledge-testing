@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Driving Theory Test</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         :root {
             --primary: #2563eb;
             --primary-hover: #1d4ed8;
@@ -48,7 +52,8 @@
             margin: 0;
             padding: 0;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
             min-height: 100vh;
         }
 
@@ -303,6 +308,7 @@
             font-size: 14px;
             color: var(--text-muted);
             min-height: 60px;
+            width: 100%;
         }
         .theme-toggle-btn {
             background: var(--card-bg);
@@ -326,6 +332,50 @@
         .user-email { font-weight: 700; color: var(--primary); }
         .auth-link { color: var(--primary); text-decoration: none; font-weight: 600; cursor: pointer; }
         .auth-link:hover { text-decoration: underline; }
+
+        /* Fast Mode Toggle Styling */
+        .fast-mode-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 0 16px;
+            height: 42px;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .fast-mode-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .fast-mode-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .fast-mode-indicator {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: var(--primary);
+            font-weight: 700;
+            letter-spacing: 1px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
     </style>
 </head>
 <body>
@@ -336,14 +386,17 @@
         </div>
     </div>
     <div class="container">
-        <div class="tabs-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-            <div class="tabs" style="flex: 1; margin-bottom: 0;">
+        <div class="tabs-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px; width: 100%; flex-wrap: wrap;">
+            <div class="tabs" style="flex: 1; margin-bottom: 0; min-width: 200px;">
                 <button id="tab-testing" class="tab-btn active" onclick="switchTab('testing')">Luyện tập</button>
-                <button id="tab-learning" class="tab-btn" onclick="switchTab('learning')">Ghi chú học tập</button>
+                <button id="tab-learning" class="tab-btn" onclick="switchTab('learning')">Ghi chú</button>
                 <button id="tab-history" class="tab-btn" onclick="switchTab('history')">Lịch sử</button>
-                <button id="tab-tips" class="tab-btn" onclick="switchTab('tips')">Mẹo thi lý thuyết</button>
+                <button id="tab-tips" class="tab-btn" onclick="switchTab('tips')">Mẹo thi</button>
             </div>
-            <button id="theme-toggle" onclick="toggleTheme()" class="theme-toggle-btn">🌙</button>
+            <div style="display: flex; gap: 8px;">
+                <button id="fast-mode-toggle" onclick="toggleFastMode()" class="fast-mode-btn" title="Tự động qua câu mới sau 3 giây">⚡ Chạy nhanh</button>
+                <button id="theme-toggle" onclick="toggleTheme()" class="theme-toggle-btn">🌙</button>
+            </div>
         </div>
 
         <div id="testing-content" class="card">
@@ -588,6 +641,8 @@
         let wrongCount = 0;
         let hasFailedCritical = false;
         let currentTab = 'testing';
+        let isFastMode = localStorage.getItem('fast_mode') === 'true';
+        let fastModeTimer = null;
 
         const dom = {
             loading: document.getElementById('loading-overlay'),
@@ -632,6 +687,9 @@
         if (localStorage.getItem('theme') === 'dark') {
             document.documentElement.setAttribute('data-theme', 'dark');
             document.getElementById('theme-toggle').innerText = '☀️';
+        }
+        if (isFastMode) {
+            document.getElementById('fast-mode-toggle').classList.add('active');
         }
 
         async function init() {
@@ -830,6 +888,9 @@
             const correctIdx = q.ans - 1;
             const buttons = dom.options.querySelectorAll('.option-btn');
             
+            // Clear any existing fast mode timer
+            if (fastModeTimer) clearTimeout(fastModeTimer);
+
             // Disable all buttons
             buttons.forEach(btn => btn.disabled = true);
             
@@ -851,7 +912,8 @@
             }
 
             dom.nextBtn.style.display = 'block';
-            dom.nextBtn.onclick = () => {
+            
+            const goToNext = () => {
                 currentIndex++;
                 if (currentIndex < filteredQuestions.length) {
                     renderQuestion();
@@ -859,6 +921,21 @@
                     showFinalResults();
                 }
             };
+
+            dom.nextBtn.onclick = goToNext;
+
+            // Fast Mode Auto-Advance
+            if (isFastMode) {
+                const indicator = document.createElement('div');
+                indicator.className = 'fast-mode-indicator';
+                indicator.innerText = 'Tiếp theo sau 3s...';
+                dom.nextBtn.style.position = 'relative';
+                dom.nextBtn.appendChild(indicator);
+                
+                fastModeTimer = setTimeout(() => {
+                    goToNext();
+                }, 3000);
+            }
         }
 
         function showFinalResults() {
@@ -1030,6 +1107,19 @@
                 html.setAttribute('data-theme', 'dark');
                 btn.innerText = '☀️';
                 localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        function toggleFastMode() {
+            isFastMode = !isFastMode;
+            localStorage.setItem('fast_mode', isFastMode);
+            const btn = document.getElementById('fast-mode-toggle');
+            btn.classList.toggle('active', isFastMode);
+            
+            if (!isFastMode && fastModeTimer) {
+                clearTimeout(fastModeTimer);
+                const indicator = document.querySelector('.fast-mode-indicator');
+                if (indicator) indicator.remove();
             }
         }
 
