@@ -651,7 +651,16 @@
         // Supabase Configuration
         const SUPABASE_URL = 'https://gjtppprtstpwfbjyovhy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqdHBwcHJ0c3Rwd2Zianlvdmh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg0NzQsImV4cCI6MjA5MjgyNDQ3NH0.hhdgyUvMoLag45KNpPP6O8-y7NmWprrl6-i7xRvVjEQ';
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // Explicit config for Safari compatibility
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+                detectSessionInUrl: true,
+                storage: window.localStorage
+            }
+        });
         let allQuestions = [];
         let filteredQuestions = [];
         let currentIndex = 0;
@@ -715,16 +724,24 @@
 
         async function init() {
             try {
-                // 1. Check current session with Supabase
+                // Safari Fix: Small delay to let browser process the URL hash
+                await new Promise(r => setTimeout(r, 500));
+
+                // 1. Check current session
                 const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
                 
                 if (session) {
                     currentUser = session.user.email;
                     updateAuthUI();
                     await syncHistoryFromServer();
+                    
+                    // Cleanup URL hash for Safari/iOS
+                    if (window.location.hash.includes('access_token')) {
+                        window.history.replaceState(null, null, window.location.pathname);
+                    }
                 }
 
-                // 2. Listen for auth changes (Login/Logout)
+                // 2. Listen for auth changes
                 supabaseClient.auth.onAuthStateChange((_event, session) => {
                     if (session) {
                         currentUser = session.user.email;
