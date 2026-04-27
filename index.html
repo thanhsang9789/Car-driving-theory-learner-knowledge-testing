@@ -659,7 +659,7 @@
                 autoRefreshToken: true,
                 detectSessionInUrl: true,
                 storage: window.localStorage,
-                flowType: 'pkce' // More secure and better for Safari/Mobile
+                flowType: 'implicit' // Switch back to implicit for better Safari sub-path support
             }
         });
 
@@ -1147,9 +1147,9 @@
                 document.getElementById('user-display').classList.add('hidden');
                 document.getElementById('guest-display').classList.remove('hidden');
                 // Nếu đang có mã trên URL mà chưa đăng nhập được, hiện nút thử lại
-                if (window.location.hash.includes('access_token') || window.location.hash.includes('code=')) {
+                if (window.location.hash.includes('access_token') || window.location.search.includes('code=')) {
                     document.getElementById('guest-display').innerHTML += `
-                        <button onclick="location.reload()" style="background:var(--warning); color:black; margin-top:10px; font-size:12px;">
+                        <button onclick="location.reload()" style="background:var(--warning); color:black; margin-top:10px; font-size:12px; border-radius:5px; padding:5px;">
                             ⚠ Safari chưa nhận đăng nhập, nhấn để thử lại
                         </button>
                     `;
