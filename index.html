@@ -658,8 +658,21 @@
                 persistSession: true,
                 autoRefreshToken: true,
                 detectSessionInUrl: true,
-                storage: window.localStorage
+                storage: window.localStorage,
+                flowType: 'pkce' // More secure and better for Safari/Mobile
             }
+        });
+
+        // Safari Fix: Move listener to top-level to catch redirect immediately
+        supabaseClient.auth.onAuthStateChange((_event, session) => {
+            console.log("Auth Event:", _event, session ? "User logged in" : "No session");
+            if (session) {
+                currentUser = session.user.email;
+                syncHistoryFromServer();
+            } else {
+                currentUser = null;
+            }
+            if (typeof updateAuthUI === 'function') updateAuthUI();
         });
         let allQuestions = [];
         let filteredQuestions = [];
@@ -724,32 +737,21 @@
 
         async function init() {
             try {
-                // Safari Fix: Small delay to let browser process the URL hash
-                await new Promise(r => setTimeout(r, 500));
+                // Safari Fix: Increased delay for hash processing
+                await new Promise(r => setTimeout(r, 1000));
 
-                // 1. Check current session
-                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+                // 1. Initial Check
+                const { data: { session } } = await supabaseClient.auth.getSession();
                 
                 if (session) {
                     currentUser = session.user.email;
                     updateAuthUI();
                     await syncHistoryFromServer();
                     
-                    // Cleanup URL hash for Safari/iOS
-                    if (window.location.hash.includes('access_token')) {
+                    if (window.location.hash.includes('access_token') || window.location.hash.includes('code=')) {
                         window.history.replaceState(null, null, window.location.pathname);
                     }
                 }
-
-                // 2. Listen for auth changes
-                supabaseClient.auth.onAuthStateChange((_event, session) => {
-                    if (session) {
-                        currentUser = session.user.email;
-                    } else {
-                        currentUser = null;
-                    }
-                    updateAuthUI();
-                });
 
                 // 3. Phase 04: Setup Auto-save listeners
                 setupAutoSave();
