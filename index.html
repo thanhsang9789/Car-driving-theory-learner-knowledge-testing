@@ -669,11 +669,17 @@
             if (session) {
                 currentUser = session.user.email;
                 syncHistoryFromServer();
+                // alert("Đã nhận diện đăng nhập: " + currentUser); // Bỏ comment nếu cần debug
             } else {
                 currentUser = null;
             }
             if (typeof updateAuthUI === 'function') updateAuthUI();
         });
+
+        // Debug: Check if hash exists on load
+        if (window.location.hash) {
+            console.log("URL Hash detected:", window.location.hash.substring(0, 20) + "...");
+        }
         let allQuestions = [];
         let filteredQuestions = [];
         let currentIndex = 0;
@@ -1140,6 +1146,14 @@
             } else {
                 document.getElementById('user-display').classList.add('hidden');
                 document.getElementById('guest-display').classList.remove('hidden');
+                // Nếu đang có mã trên URL mà chưa đăng nhập được, hiện nút thử lại
+                if (window.location.hash.includes('access_token') || window.location.hash.includes('code=')) {
+                    document.getElementById('guest-display').innerHTML += `
+                        <button onclick="location.reload()" style="background:var(--warning); color:black; margin-top:10px; font-size:12px;">
+                            ⚠ Safari chưa nhận đăng nhập, nhấn để thử lại
+                        </button>
+                    `;
+                }
             }
         }
 
