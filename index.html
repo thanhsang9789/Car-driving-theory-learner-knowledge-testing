@@ -624,16 +624,34 @@
                 <div id="auth-error" style="color: var(--danger); font-size: 13px; margin-bottom: 12px;" class="hidden"></div>
                 <input type="email" id="auth-email" placeholder="Email" style="text-align: left;">
                 <input type="password" id="auth-password" placeholder="Mật khẩu" style="text-align: left;">
+                
                 <div class="modal-btns">
-                    <button class="tab-btn" onclick="toggleAuthMode()" id="auth-toggle-btn" style="background: var(--tabs-bg); font-size: 12px;">Chưa có tài khoản?</button>
                     <button class="tab-btn active" onclick="handleAuthSubmit()" id="auth-submit-btn">Đăng nhập</button>
                 </div>
-                <button class="auth-link" onclick="closeAuthModal()" style="margin-top: 16px; font-size: 13px; background: none; border: none;">Đóng</button>
+
+                <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+                    <button class="tab-btn" onclick="handleGoogleLogin()" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: white; color: #374151; border: 1px solid var(--border);">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18">
+                        Tiếp tục với Google
+                    </button>
+                </div>
+
+                <div style="margin-top: 16px; display: flex; justify-content: space-between; font-size: 13px;">
+                    <span class="auth-link" onclick="toggleAuthMode()" id="auth-toggle-btn">Chưa có tài khoản?</span>
+                    <span class="auth-link" onclick="closeAuthModal()">Đóng</span>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://gjtppprtstpwfbjyovhy.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqdHBwcHJ0c3Rwd2Zianlvdmh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg0NzQsImV4cCI6MjA5MjgyNDQ3NH0.hhdgyUvMoLag45KNpPP6O8-y7NmWprrl6-i7xRvVjEQ';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let allQuestions = [];
         let filteredQuestions = [];
         let currentIndex = 0;
@@ -694,23 +712,24 @@
 
         async function init() {
             try {
-                // Check auth status - Wrap in separate try/catch for Netlify/Static compatibility
-                try {
-                    const authRes = await fetch('/api/user_info');
-                    if (authRes.ok) {
-                        const authData = await authRes.json();
-                        if (authData.logged_in) {
-                            currentUser = authData.email;
-                            updateAuthUI();
-                            await syncHistoryFromServer();
-                        }
-                    } else {
-                        document.getElementById('auth-status').classList.add('hidden');
-                    }
-                } catch (e) {
-                    console.log("Running in static mode (no backend)");
-                    document.getElementById('auth-status').classList.add('hidden');
+                // 1. Check current session with Supabase
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                
+                if (session) {
+                    currentUser = session.user.email;
+                    updateAuthUI();
+                    // await syncHistoryFromServer(); // Will implement in Phase 03
                 }
+
+                // 2. Listen for auth changes (Login/Logout)
+                supabase.auth.onAuthStateChange((_event, session) => {
+                    if (session) {
+                        currentUser = session.user.email;
+                    } else {
+                        currentUser = null;
+                    }
+                    updateAuthUI();
+                });
 
                 // Main data loading
                 const res = await fetch('questions.json?v=' + new Date().getTime());
@@ -1059,41 +1078,51 @@
                 return;
             }
 
-            const endpoint = isRegisterMode ? '/api/register' : '/api/login';
             try {
-                const res = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                const data = await res.json();
+                let result;
+                if (isRegisterMode) {
+                    result = await supabase.auth.signUp({ email, password });
+                } else {
+                    result = await supabase.auth.signInWithPassword({ email, password });
+                }
+
+                const { data, error } = result;
                 
-                if (res.ok) {
+                if (error) {
+                    errorEl.innerText = error.message;
+                    errorEl.classList.remove('hidden');
+                } else {
                     if (isRegisterMode) {
-                        alert("Đăng ký thành công! Hãy đăng nhập.");
+                        alert("Đăng ký thành công! Vui lòng kiểm tra email (nếu có) hoặc đăng nhập.");
                         toggleAuthMode();
                     } else {
-                        currentUser = data.email;
+                        currentUser = data.user.email;
                         updateAuthUI();
                         closeAuthModal();
-                        await syncHistoryFromServer();
-                        if (currentTab === 'history') renderHistory();
                     }
-                } else {
-                    errorEl.innerText = data.error || "Lỗi không xác định";
-                    errorEl.classList.remove('hidden');
                 }
             } catch (err) {
-                errorEl.innerText = "Lỗi kết nối server";
+                errorEl.innerText = "Lỗi kết nối Supabase";
                 errorEl.classList.remove('hidden');
             }
         }
 
+        async function handleGoogleLogin() {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin
+                }
+            });
+            if (error) alert("Lỗi đăng nhập Google: " + error.message);
+        }
+
         async function handleLogout() {
-            await fetch('/api/logout');
+            const { error } = await supabase.auth.signOut();
+            if (error) console.error("Logout error", error);
             currentUser = null;
             updateAuthUI();
-            location.reload(); // Refresh to clear data
+            location.reload();
         }
 
         function toggleTheme() {
