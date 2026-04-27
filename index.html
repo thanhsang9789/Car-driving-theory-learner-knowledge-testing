@@ -661,6 +661,9 @@
         let currentTab = 'testing';
         let isFastMode = localStorage.getItem('fast_mode') === 'true';
         let fastModeTimer = null;
+        let unsavedWrongAnswers = []; // Buffer for Phase 04
+        let inactivityTimer = null;
+        const INACTIVITY_LIMIT = 10 * 60 * 1000; // 10 minutes
 
         const dom = {
             loading: document.getElementById('loading-overlay'),
@@ -718,7 +721,7 @@
                 if (session) {
                     currentUser = session.user.email;
                     updateAuthUI();
-                    // await syncHistoryFromServer(); // Will implement in Phase 03
+                    await syncHistoryFromServer();
                 }
 
                 // 2. Listen for auth changes (Login/Logout)
@@ -730,6 +733,9 @@
                     }
                     updateAuthUI();
                 });
+
+                // 3. Phase 04: Setup Auto-save listeners
+                setupAutoSave();
 
                 // Main data loading
                 const res = await fetch('questions.json?v=' + new Date().getTime());
@@ -957,7 +963,7 @@
             }
         }
 
-        function showFinalResults() {
+        async function showFinalResults() {
             dom.quizScreen.classList.add('hidden');
             dom.resultScreen.classList.remove('hidden');
             
@@ -973,12 +979,25 @@
                 msg = "Kết quả chưa đạt. Hãy ôn tập thêm nhé! 📚";
             }
             dom.resultMsg.innerText = msg;
+
+            // Save session summary to Cloud
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                await supabase.from('quiz_history').insert({
+                    user_id: user.id,
+                    category: filteredQuestions[0]?.cn || filteredQuestions[0]?.category || 'General',
+                    total_questions: filteredQuestions.length,
+                    correct_count: correctCount,
+                    wrong_count: wrongCount,
+                    score_percent: scorePercent
+                });
+            }
         }
 
-        function saveToHistory(id, isCorrect, questionText = "", correctAnswer = "") {
+        async function saveToHistory(id, isCorrect, questionText = "", correctAnswer = "") {
             const today = new Date().toLocaleDateString('vi-VN');
             
-            // Local update
+            // 1. Local update (Keep for offline/speed)
             if (isCorrect) {
                 historyData.totalCorrect++;
             } else {
@@ -989,52 +1008,106 @@
                 const exists = historyData.wrongByDate[today].find(x => x.id === id);
                 if (!exists) {
                     historyData.wrongByDate[today].push({ id, q: questionText, a: correctAnswer });
+                    
+                    // Buffer for Cloud (Phase 04)
+                    unsavedWrongAnswers.push({
+                        question_id: id,
+                        category: filteredQuestions[0]?.cn || filteredQuestions[0]?.category || 'General'
+                    });
                 }
             }
             localStorage.setItem(STORAGE_KEY, JSON.stringify(historyData));
+            
+            // Reset inactivity timer on every answer
+            resetInactivityTimer();
+        }
 
-            // Server sync if logged in
-            if (currentUser) {
-                fetch('/api/history', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        id, 
-                        q: questionText, 
-                        a: correctAnswer, 
-                        is_correct: isCorrect,
-                        date: today
-                    })
-                });
+        function resetInactivityTimer() {
+            if (inactivityTimer) clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                console.log("Inactivity detected. Saving data...");
+                persistPendingData();
+            }, INACTIVITY_LIMIT);
+        }
+
+        async function persistPendingData() {
+            if (unsavedWrongAnswers.length === 0) return;
+            
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const dataToSave = unsavedWrongAnswers.map(item => ({
+                user_id: user.id,
+                question_id: item.question_id,
+                category: item.category
+            }));
+
+            const { error } = await supabase.from('wrong_answers').insert(dataToSave);
+            if (!error) {
+                unsavedWrongAnswers = []; // Clear buffer on success
+                console.log("Auto-saved successfully.");
             }
         }
 
+        function setupAutoSave() {
+            // Listen for tab closing/hiding
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') {
+                    persistPendingData();
+                }
+            });
+
+            // Listen for user interactions to reset timer
+            ['mousedown', 'keydown', 'touchstart', 'scroll'].forEach(evt => {
+                document.addEventListener(evt, resetInactivityTimer, { passive: true });
+            });
+            
+            resetInactivityTimer();
+        }
+
         async function syncHistoryFromServer() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
             try {
-                const res = await fetch('/api/history');
-                const data = await res.json();
-                if (Array.isArray(data)) {
-                    // Merging logic or just replace
-                    // For simplicity, let's keep local but prioritize server data for the History tab
-                    // In a real app, you'd merge them properly.
-                    // We'll update historyData based on server data for the UI
-                    let correct = 0;
-                    let wrong = 0;
+                // Fetch wrong answers count and details
+                const { data: wrongData, error: wrongError } = await supabase
+                    .from('wrong_answers')
+                    .select('*');
+                
+                // Fetch quiz history summary
+                const { data: summaryData, error: summaryError } = await supabase
+                    .from('quiz_history')
+                    .select('correct_count, wrong_count');
+
+                if (wrongData) {
                     let wrongByDate = {};
-                    
-                    data.forEach(h => {
-                        if (h.is_correct) {
-                            correct++;
-                        } else {
-                            wrong++;
-                            if (!wrongByDate[h.date]) wrongByDate[h.date] = [];
-                            wrongByDate[h.date].push({ id: h.question_id, q: h.question_text, a: h.correct_answer });
+                    wrongData.forEach(w => {
+                        const date = new Date(w.created_at).toLocaleDateString('vi-VN');
+                        if (!wrongByDate[date]) wrongByDate[date] = [];
+                        
+                        // Try to find question text from allQuestions
+                        const q = allQuestions.find(qx => qx.id === w.question_id);
+                        if (q) {
+                            wrongByDate[date].push({ 
+                                id: w.question_id, 
+                                q: q.q, 
+                                a: q.opts[q.ans - 1].t 
+                            });
                         }
                     });
-                    
-                    historyData.totalCorrect = correct;
-                    historyData.totalWrong = wrong;
+
+                    let totalCorrect = 0;
+                    let totalWrong = wrongData.length;
+                    if (summaryData) {
+                        summaryData.forEach(s => totalCorrect += s.correct_count);
+                    }
+
+                    historyData.totalCorrect = totalCorrect;
+                    historyData.totalWrong = totalWrong;
                     historyData.wrongByDate = wrongByDate;
+                    
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(historyData));
                 }
             } catch (err) { console.error("Sync failed", err); }
         }
