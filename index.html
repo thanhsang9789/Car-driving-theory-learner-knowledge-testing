@@ -651,7 +651,7 @@
         // Supabase Configuration
         const SUPABASE_URL = 'https://gjtppprtstpwfbjyovhy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqdHBwcHJ0c3Rwd2Zianlvdmh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNDg0NzQsImV4cCI6MjA5MjgyNDQ3NH0.hhdgyUvMoLag45KNpPP6O8-y7NmWprrl6-i7xRvVjEQ';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let allQuestions = [];
         let filteredQuestions = [];
         let currentIndex = 0;
@@ -716,7 +716,7 @@
         async function init() {
             try {
                 // 1. Check current session with Supabase
-                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
                 
                 if (session) {
                     currentUser = session.user.email;
@@ -725,7 +725,7 @@
                 }
 
                 // 2. Listen for auth changes (Login/Logout)
-                supabase.auth.onAuthStateChange((_event, session) => {
+                supabaseClient.auth.onAuthStateChange((_event, session) => {
                     if (session) {
                         currentUser = session.user.email;
                     } else {
@@ -981,9 +981,9 @@
             dom.resultMsg.innerText = msg;
 
             // Save session summary to Cloud
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await supabaseClient.auth.getUser();
             if (user) {
-                await supabase.from('quiz_history').insert({
+                await supabaseClient.from('quiz_history').insert({
                     user_id: user.id,
                     category: filteredQuestions[0]?.cn || filteredQuestions[0]?.category || 'General',
                     total_questions: filteredQuestions.length,
@@ -1033,7 +1033,7 @@
         async function persistPendingData() {
             if (unsavedWrongAnswers.length === 0) return;
             
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await supabaseClient.auth.getUser();
             if (!user) return;
 
             const dataToSave = unsavedWrongAnswers.map(item => ({
@@ -1042,7 +1042,7 @@
                 category: item.category
             }));
 
-            const { error } = await supabase.from('wrong_answers').insert(dataToSave);
+            const { error } = await supabaseClient.from('wrong_answers').insert(dataToSave);
             if (!error) {
                 unsavedWrongAnswers = []; // Clear buffer on success
                 console.log("Auto-saved successfully.");
@@ -1066,7 +1066,7 @@
         }
 
         async function syncHistoryFromServer() {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await supabaseClient.auth.getUser();
             if (!user) return;
 
             try {
@@ -1154,9 +1154,9 @@
             try {
                 let result;
                 if (isRegisterMode) {
-                    result = await supabase.auth.signUp({ email, password });
+                    result = await supabaseClient.auth.signUp({ email, password });
                 } else {
-                    result = await supabase.auth.signInWithPassword({ email, password });
+                    result = await supabaseClient.auth.signInWithPassword({ email, password });
                 }
 
                 const { data, error } = result;
@@ -1181,7 +1181,7 @@
         }
 
         async function handleGoogleLogin() {
-            const { error } = await supabase.auth.signInWithOAuth({
+            const { error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
                     redirectTo: window.location.origin
@@ -1191,7 +1191,7 @@
         }
 
         async function handleLogout() {
-            const { error } = await supabase.auth.signOut();
+            const { error } = await supabaseClient.auth.signOut();
             if (error) console.error("Logout error", error);
             currentUser = null;
             updateAuthUI();
