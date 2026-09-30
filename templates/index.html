@@ -204,6 +204,35 @@
             background: var(--bg);
         }
 
+        .option-btn.selected:not(.correct):not(.incorrect) {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.08);
+            box-shadow: 0 0 0 2px var(--primary);
+            transform: translateX(4px);
+        }
+
+        [data-theme="dark"] .option-btn.selected:not(.correct):not(.incorrect) {
+            background: rgba(59, 130, 246, 0.18);
+            box-shadow: 0 0 0 2px var(--primary);
+        }
+
+        kbd {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 5px;
+            font-size: 11px;
+            font-family: inherit;
+            font-weight: 700;
+            color: var(--text-main);
+            background-color: var(--tabs-bg);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+
         .option-btn.correct {
             border-color: var(--success);
             background: var(--correct-bg);
@@ -381,8 +410,15 @@
                     <strong>Giải thích:</strong> <span id="tip-text"></span>
                 </div>
 
-                <div style="margin-top: 32px;">
-                    <button id="next-btn" class="tab-btn active" style="width: 100%; border-radius: 12px; display: none;">Câu tiếp theo</button>
+                <div class="quiz-nav-buttons" style="margin-top: 32px; display: flex; gap: 12px;">
+                    <button id="prev-btn" class="tab-btn" style="flex: 1; border-radius: 12px; display: none; background: var(--tabs-bg);" onclick="goToPrev()">← Câu trước (Phím ←)</button>
+                    <button id="confirm-btn" class="tab-btn active" style="flex: 1; border-radius: 12px; display: none;" onclick="confirmSelectedAnswer()">Xác nhận (Enter)</button>
+                    <button id="next-btn" class="tab-btn active" style="flex: 1; border-radius: 12px; display: none;" onclick="goToNext()">Câu tiếp theo (Phím →)</button>
+                </div>
+                <div class="keyboard-hints" style="margin-top: 14px; font-size: 12px; color: var(--text-muted); text-align: center; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+                    <span><kbd>↑</kbd> <kbd>↓</kbd> Chọn đáp án</span>
+                    <span><kbd>Enter</kbd> Xác nhận / Tiếp tục</span>
+                    <span><kbd>←</kbd> <kbd>→</kbd> Chuyển câu</span>
                 </div>
             </div>
 
@@ -588,6 +624,8 @@
         let wrongCount = 0;
         let hasFailedCritical = false;
         let currentTab = 'testing';
+        let userAnswers = {};
+        let selectedOptionIdx = -1;
 
         const dom = {
             loading: document.getElementById('loading-overlay'),
@@ -606,6 +644,8 @@
             options: document.getElementById('options-list'),
             tipBox: document.getElementById('tip-box'),
             tipText: document.getElementById('tip-text'),
+            prevBtn: document.getElementById('prev-btn'),
+            confirmBtn: document.getElementById('confirm-btn'),
             nextBtn: document.getElementById('next-btn'),
             progress: document.getElementById('progress-fill'),
             currentIdx: document.getElementById('current-idx'),
@@ -661,6 +701,13 @@
                 allQuestions = await res.json();
                 renderCategories();
                 renderLearningNotes();
+
+                // Register Keyboard Navigation & Button handlers
+                document.addEventListener('keydown', handleKeyDown);
+                if (dom.prevBtn) dom.prevBtn.onclick = goToPrev;
+                if (dom.confirmBtn) dom.confirmBtn.onclick = confirmSelectedAnswer;
+                if (dom.nextBtn) dom.nextBtn.onclick = goToNext;
+
                 dom.loading.classList.add('hidden');
             } catch (err) {
                 console.error(err);
@@ -780,6 +827,8 @@
             correctCount = 0;
             wrongCount = 0;
             hasFailedCritical = false;
+            userAnswers = {};
+            selectedOptionIdx = -1;
             
             dom.categoryScreen.classList.add('hidden');
             dom.resultScreen.classList.add('hidden');
@@ -799,7 +848,7 @@
             dom.currentIdx.innerText = currentIndex + 1;
             dom.question.innerText = q.q;
             dom.critical.classList.toggle('hidden', !q.crit);
-            dom.progress.style.width = `${(currentIndex / filteredQuestions.length) * 100}%`;
+            dom.progress.style.width = `${((currentIndex + 1) / filteredQuestions.length) * 100}%`;
             dom.correctCount.innerText = correctCount;
             dom.wrongCount.innerText = wrongCount;
 
@@ -813,27 +862,140 @@
             }
             
             dom.options.innerHTML = '';
-            q.opts.forEach((opt, idx) => {
-                const btn = document.createElement('button');
-                btn.className = 'option-btn';
-                btn.innerHTML = `<strong>${idx + 1}.</strong> &nbsp; ${opt.t}`;
-                btn.onclick = () => handleAnswer(idx);
-                dom.options.appendChild(btn);
+            const answered = userAnswers[currentIndex];
+
+            if (answered) {
+                selectedOptionIdx = answered.selectedIdx;
+                const correctIdx = q.ans - 1;
+
+                q.opts.forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.innerHTML = `<strong>${idx + 1}.</strong> &nbsp; ${opt.t}`;
+                    btn.disabled = true;
+                    if (idx === correctIdx) {
+                        btn.classList.add('correct');
+                    }
+                    if (idx === answered.selectedIdx && idx !== correctIdx) {
+                        btn.classList.add('incorrect');
+                    }
+                    dom.options.appendChild(btn);
+                });
+
+                if (q.tip) {
+                    dom.tipText.innerText = q.tip;
+                    dom.tipBox.classList.remove('hidden');
+                } else {
+                    dom.tipBox.classList.add('hidden');
+                }
+
+                if (dom.confirmBtn) dom.confirmBtn.style.display = 'none';
+                dom.nextBtn.style.display = 'block';
+            } else {
+                selectedOptionIdx = -1;
+                q.opts.forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.innerHTML = `<strong>${idx + 1}.</strong> &nbsp; ${opt.t}`;
+                    btn.onclick = () => {
+                        selectOption(idx);
+                        confirmSelectedAnswer();
+                    };
+                    dom.options.appendChild(btn);
+                });
+
+                dom.tipBox.classList.add('hidden');
+                if (dom.confirmBtn) dom.confirmBtn.style.display = 'none';
+                dom.nextBtn.style.display = 'none';
+            }
+
+            if (dom.prevBtn) {
+                dom.prevBtn.style.display = currentIndex > 0 ? 'block' : 'none';
+            }
+            if (currentIndex === filteredQuestions.length - 1) {
+                dom.nextBtn.innerText = 'Xem kết quả →';
+            } else {
+                dom.nextBtn.innerText = 'Câu tiếp theo (Phím →)';
+            }
+        }
+
+        function selectOption(direction) {
+            if (dom.quizScreen.classList.contains('hidden')) return;
+            if (userAnswers[currentIndex]) return;
+            
+            const q = filteredQuestions[currentIndex];
+            if (!q || !q.opts || q.opts.length === 0) return;
+            const count = q.opts.length;
+            const buttons = dom.options.querySelectorAll('.option-btn');
+            if (buttons.length === 0) return;
+            
+            if (direction === 'down') {
+                if (selectedOptionIdx === -1) {
+                    selectedOptionIdx = 0;
+                } else {
+                    selectedOptionIdx = (selectedOptionIdx + 1) % count;
+                }
+            } else if (direction === 'up') {
+                if (selectedOptionIdx === -1) {
+                    selectedOptionIdx = count - 1;
+                } else {
+                    selectedOptionIdx = (selectedOptionIdx - 1 + count) % count;
+                }
+            } else if (typeof direction === 'number') {
+                if (direction >= 0 && direction < count) {
+                    selectedOptionIdx = direction;
+                }
+            }
+            
+            buttons.forEach((btn, idx) => {
+                if (idx === selectedOptionIdx) {
+                    btn.classList.add('selected');
+                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    btn.classList.remove('selected');
+                }
             });
 
-            dom.tipBox.classList.add('hidden');
-            dom.nextBtn.style.display = 'none';
+            if (dom.confirmBtn && selectedOptionIdx !== -1) {
+                dom.confirmBtn.style.display = 'block';
+            }
+        }
+
+        function confirmSelectedAnswer() {
+            if (dom.quizScreen.classList.contains('hidden')) return;
+            
+            // If already answered, Enter advances to next question
+            if (userAnswers[currentIndex]) {
+                goToNext();
+                return;
+            }
+            
+            // If an option is selected, confirm it
+            if (selectedOptionIdx >= 0 && selectedOptionIdx < filteredQuestions[currentIndex].opts.length) {
+                handleAnswer(selectedOptionIdx);
+            } else {
+                // If nothing is selected, select the first option
+                selectOption(0);
+            }
         }
 
         function handleAnswer(selectedIdx) {
+            if (userAnswers[currentIndex]) return;
+
             const q = filteredQuestions[currentIndex];
             const correctIdx = q.ans - 1;
             const buttons = dom.options.querySelectorAll('.option-btn');
+            const isCorrect = (selectedIdx === correctIdx);
             
-            // Disable all buttons
-            buttons.forEach(btn => btn.disabled = true);
+            userAnswers[currentIndex] = { selectedIdx, isCorrect };
+            selectedOptionIdx = selectedIdx;
+
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.remove('selected');
+            });
             
-            if (selectedIdx === correctIdx) {
+            if (isCorrect) {
                 buttons[selectedIdx].classList.add('correct');
                 correctCount++;
                 saveToHistory(q.id, true);
@@ -844,21 +1006,79 @@
                 if (q.crit) hasFailedCritical = true;
                 saveToHistory(q.id, false, q.q, q.opts[correctIdx].t);
             }
+            
+            dom.correctCount.innerText = correctCount;
+            dom.wrongCount.innerText = wrongCount;
 
             if (q.tip) {
                 dom.tipText.innerText = q.tip;
                 dom.tipBox.classList.remove('hidden');
             }
 
+            if (dom.confirmBtn) dom.confirmBtn.style.display = 'none';
             dom.nextBtn.style.display = 'block';
-            dom.nextBtn.onclick = () => {
+            if (currentIndex === filteredQuestions.length - 1) {
+                dom.nextBtn.innerText = 'Xem kết quả →';
+            } else {
+                dom.nextBtn.innerText = 'Câu tiếp theo (Phím →)';
+            }
+        }
+
+        function goToNext() {
+            if (currentIndex < filteredQuestions.length - 1) {
                 currentIndex++;
-                if (currentIndex < filteredQuestions.length) {
-                    renderQuestion();
-                } else {
+                renderQuestion();
+            } else {
+                if (userAnswers[currentIndex]) {
                     showFinalResults();
                 }
-            };
+            }
+        }
+
+        function goToPrev() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                renderQuestion();
+            }
+        }
+
+        function handleKeyDown(e) {
+            // Only handle keyboard navigation in practice mode when quiz screen is active
+            if (currentTab !== 'testing') return;
+            if (!dom.quizScreen || dom.quizScreen.classList.contains('hidden')) return;
+            
+            // Ignore if any modal is open
+            const jumpModal = document.getElementById('jump-modal');
+            if (jumpModal && !jumpModal.classList.contains('hidden')) return;
+            const authModal = document.getElementById('auth-modal');
+            if (authModal && !authModal.classList.contains('hidden')) return;
+            
+            // Ignore if user is typing in input, textarea, etc.
+            const activeTag = document.activeElement ? document.activeElement.tagName : '';
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag)) return;
+            
+            // Ignore modifier keys
+            if (e.ctrlKey || e.altKey || e.metaKey) return;
+            
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                goToPrev();
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                goToNext();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectOption('up');
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectOption('down');
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmSelectedAnswer();
+            } else if (['1', '2', '3', '4'].includes(e.key)) {
+                const idx = parseInt(e.key, 10) - 1;
+                selectOption(idx);
+            }
         }
 
         function showFinalResults() {
